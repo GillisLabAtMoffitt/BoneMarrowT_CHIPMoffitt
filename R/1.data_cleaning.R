@@ -46,7 +46,7 @@ bmt_info <- bmt_info %>%
 patient_samples <- patient_samples %>% 
   distinct(mrn, collectiondt, sampletype, .keep_all = TRUE) %>% 
   arrange(collectiondt)
-patient_samples1 <- dcast(setDT(patient_samples), mrn ~ rowid(mrn), 
+patient_samples <- dcast(setDT(patient_samples), mrn ~ rowid(mrn), 
                             value.var = c("collectiondt", "sampleid", "sampletype", "samplefamilyid", 
                                           "tissuetype", "collectionmethod", "currentqty", "units", "storagestatus"))
 
@@ -63,11 +63,11 @@ recipient_bmt <- bmt_info %>%
 
 # Find recipient sample date after bmt date
 recipient_samples <- left_join(recipient_bmt, 
-                                patient_samples1, # Merge recipient who has samples with their samples
+                                patient_samples, # Merge recipient who has samples with their samples
                                 by = c("recipient_mrn" = "mrn"))
 
 # Select donors samples who has recipient sample
-recipient_samples1 <- recipient_samples %>% 
+recipient_samples <- recipient_samples %>% 
   mutate(first_collectiondt_after_bmt = case_when(
     bmt_date < collectiondt_1 ~ collectiondt_1,
     bmt_date < collectiondt_2 ~ collectiondt_2,
@@ -88,10 +88,10 @@ recipient_samples1 <- recipient_samples %>%
   )) %>% 
   select(c("recipient_mrn", "donor_mrn", "primedx", "bmt_date", "first_collectiondt_after_bmt"), everything())
 
+recipient_clin <- left_join(recipient_samples, clinical, by = "recipient_mrn")
   
   
-  
-colnames(recipient_samples)
+write_csv(recipient_clin, paste0(path, "/output/Samples and clinicals for recipients who has samples2.csv"))
 
 
 
