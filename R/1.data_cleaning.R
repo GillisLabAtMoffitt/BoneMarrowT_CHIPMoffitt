@@ -46,10 +46,25 @@ bmt_info <- bmt_info %>%
 patient_samples <- patient_samples %>% 
   distinct(mrn, collectiondt, sampletype, .keep_all = TRUE) %>% 
   arrange(collectiondt)
-patient_samples <- dcast(setDT(patient_samples), mrn ~ rowid(mrn), 
-                            value.var = c("collectiondt", "sampleid", "sampletype", "samplefamilyid", 
-                                          "tissuetype", "collectionmethod", "currentqty", "units", "storagestatus"))
+patient_samples1 <- dcast(setDT(patient_samples), mrn+collectiondt ~ rowid(mrn), 
+                            value.var = c("sampleid", "sampletype", "samplefamilyid", 
+                                          "tissuetype", "collectionmethod", "currentqty", "units", "storagestatus")) %>% 
+  unite(sampleid, sampleid_1:sampleid_16, sep = ", ", na.rm = TRUE, remove = TRUE) %>% 
+  unite(sampletype, sampletype_1:sampletype_16, sep = ", ", na.rm = TRUE, remove = TRUE) %>% 
+  unite(samplefamilyid, samplefamilyid_1:samplefamilyid_16, sep = ", ", na.rm = TRUE, remove = TRUE) %>% 
+  unite(tissuetype, tissuetype_1:tissuetype_16, sep = ", ", na.rm = TRUE, remove = TRUE) %>% 
+  unite(collectionmethod, collectionmethod_1:collectionmethod_16, sep = ", ", na.rm = TRUE, remove = TRUE) %>% 
+  unite(currentqty, currentqty_1:currentqty_16, sep = "; ", na.rm = TRUE, remove = TRUE) %>% 
+  unite(units, units_1:units_16, sep = ", ", na.rm = TRUE, remove = TRUE) %>% 
+  unite(storagestatus, storagestatus_1:storagestatus_16, sep = ", ", na.rm = TRUE, remove = TRUE)
 
+patient_samples2 <- dcast(setDT(patient_samples1), mrn ~ rowid(mrn), 
+                          value.var = c("collectiondt", "sampleid", "sampletype", "samplefamilyid", 
+                                        "tissuetype", "collectionmethod", "currentqty", "units", "storagestatus"))
+
+
+
+colnames(patient_samples1)
 # Select recipient ID with samples
 recipient_bmt <- bmt_info %>% 
   filter(`Patient samples?` == "Yes") %>% 
@@ -63,7 +78,7 @@ recipient_bmt <- bmt_info %>%
 
 # Find recipient sample date after bmt date
 recipient_samples <- left_join(recipient_bmt, 
-                                patient_samples, # Merge recipient who has samples with their samples
+                                patient_samples2, # Merge recipient who has samples with their samples
                                 by = c("recipient_mrn" = "mrn"))
 
 # Select donors samples who has recipient sample
@@ -81,12 +96,25 @@ recipient_samples <- recipient_samples %>%
     bmt_date < collectiondt_10 ~ collectiondt_10,
     bmt_date < collectiondt_11 ~ collectiondt_11,
     bmt_date < collectiondt_12 ~ collectiondt_12,
-    bmt_date < collectiondt_13 ~ collectiondt_13,
-    bmt_date < collectiondt_14 ~ collectiondt_14,
-    bmt_date < collectiondt_15 ~ collectiondt_15,
-    bmt_date < collectiondt_16 ~ collectiondt_16
+    bmt_date < collectiondt_13 ~ collectiondt_13
   )) %>% 
-  select(c("recipient_mrn", "donor_mrn", "primedx", "bmt_date", "first_collectiondt_after_bmt"), everything())
+  mutate(first_sampletype_after_bmt = case_when(
+    bmt_date < collectiondt_1 ~ sampletype_1,
+    bmt_date < collectiondt_2 ~ sampletype_2,
+    bmt_date < collectiondt_3 ~ sampletype_3,
+    bmt_date < collectiondt_4 ~ sampletype_4,
+    bmt_date < collectiondt_5 ~ sampletype_5,
+    bmt_date < collectiondt_6 ~ sampletype_6,
+    bmt_date < collectiondt_7 ~ sampletype_7,
+    bmt_date < collectiondt_8 ~ sampletype_8,
+    bmt_date < collectiondt_9 ~ sampletype_9,
+    bmt_date < collectiondt_10 ~ sampletype_10,
+    bmt_date < collectiondt_11 ~ sampletype_11,
+    bmt_date < collectiondt_12 ~ sampletype_12,
+    bmt_date < collectiondt_13 ~ sampletype_13
+  )) %>% 
+  select(c("recipient_mrn", "donor_mrn", "primedx", "bmt_date", "first_collectiondt_after_bmt", "first_sampletype_after_bmt"),
+         everything())
 
 recipient_clin <- left_join(recipient_samples, clinical, by = "recipient_mrn")
   
